@@ -2,11 +2,13 @@ import { app } from './app';
 import { config } from './config/env.config';
 import { dbConnection } from '../infrastructure/database/mongoose.connection';
 import http from 'http';
+import { productService } from '../modules/catalog/product.service';
 
 const startServer = async (): Promise<void> => {
   try {
-    // 1. Establish Database Connection
+    // 1. Establish Database Connection & Warm In-Memory Indexes
     await dbConnection.connect();
+    await productService.warmTrie();
 
     // 2. Start HTTP Server
     const server = http.createServer(app);
