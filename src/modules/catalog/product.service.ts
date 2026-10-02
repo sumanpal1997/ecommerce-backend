@@ -13,12 +13,14 @@ import {
 } from './product.types';
 import { ConflictError, NotFoundError } from '../../app/errors/app-error';
 import { PaginationMeta } from '../../app/utils/api-response';
+import { inventoryService, InventoryService } from '../inventory/inventory.service';
 
 export class ProductService {
   constructor(
     private readonly productRepo: ProductRepository = productRepository,
     private readonly categoryRepo: CategoryRepository = categoryRepository,
     private readonly trie: AutocompleteTrie = catalogTrie,
+    private readonly inventory: InventoryService = inventoryService,
   ) {}
 
   private slugify(text: string): string {
@@ -70,6 +72,13 @@ export class ProductService {
     // Populate Trie for instant typeahead
     this.trie.insert({ term: product.title, slug: product.slug, score: 10 });
     this.trie.insert({ term: product.brand, score: 5 });
+
+    // Initialize inventory record for this product SKU
+    await this.inventory.initializeStock(
+      product._id.toString(),
+      product.sku,
+      input.initialStock || 0,
+    );
 
     return product;
   }

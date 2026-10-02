@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authRoutes from '../../modules/auth/auth.route';
 import categoryRoutes from '../../modules/catalog/category.route';
 import productRoutes from '../../modules/catalog/product.route';
+import inventoryRoutes from '../../modules/inventory/inventory.route';
 import { sendSuccess } from '../utils/api-response';
 
 const router = Router();
@@ -23,5 +24,6 @@ router.get('/health', (_req, res) => {
 router.use('/auth', authRoutes);
 router.use('/categories', categoryRoutes);
 router.use('/products', productRoutes);
+router.use('/inventory', inventoryRoutes);
 
 export default router;

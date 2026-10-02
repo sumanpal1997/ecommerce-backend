@@ -23,6 +23,7 @@ export const createProductSchema = z.object({
       }),
     )
     .min(1, 'At least one product image is required'),
+  initialStock: z.number().int().min(0, 'Initial stock cannot be negative').optional().default(0),
   attributes: z.record(z.string(), z.string()).optional().default({}),
   status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']).optional().default('ACTIVE'),
 });
