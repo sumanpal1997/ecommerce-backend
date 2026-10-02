@@ -276,8 +276,8 @@ export class CartService {
       });
     }
 
-    // Shipping logic: Free shipping on orders over $100, otherwise $10 flat rate
-    const estimatedShipping = subtotal > 100 || subtotal === 0 ? 0 : 10;
+    // Shipping logic: Free shipping on orders of $100 or more, otherwise $10 flat rate
+    const estimatedShipping = subtotal >= 100 || subtotal === 0 ? 0 : 10;
     const total = subtotal + estimatedShipping;
 
     return {

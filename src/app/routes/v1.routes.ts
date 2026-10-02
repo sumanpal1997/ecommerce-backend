@@ -4,6 +4,8 @@ import categoryRoutes from '../../modules/catalog/category.route';
 import productRoutes from '../../modules/catalog/product.route';
 import inventoryRoutes from '../../modules/inventory/inventory.route';
 import cartRoutes from '../../modules/cart/cart.route';
+import orderRoutes from '../../modules/orders/order.route';
+import paymentRoutes from '../../modules/payments/payment.route';
 import { sendSuccess } from '../utils/api-response';
 
 const router = Router();
@@ -27,5 +29,7 @@ router.use('/categories', categoryRoutes);
 router.use('/products', productRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/cart', cartRoutes);
+router.use('/orders', orderRoutes);
+router.use('/payments', paymentRoutes);
 
 export default router;
