@@ -55,3 +55,33 @@ export const authorize = (...allowedRoles: UserRole[]) => {
     next();
   };
 };
+
+/**
+ * Middleware that optionally extracts and validates JWT if present,
+ * but allows unauthenticated guest requests to proceed without error.
+ */
+export const optionalAuthenticate = (req: Request, _res: Response, next: NextFunction): void => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return next();
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return next();
+  }
+
+  try {
+    const payload = tokenService.verifyAccessToken(token);
+    req.user = {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role,
+    };
+  } catch {
+    // If token is invalid or expired, continue as guest
+  }
+
+  next();
+};
