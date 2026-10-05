@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { cartService, CartService } from './cart.service';
 import { sendSuccess } from '../../app/utils/api-response';
-import { UnauthorizedError } from '../../app/errors/app-error';
+import { UnauthorizedError, ForbiddenError } from '../../app/errors/app-error';
 
 export class CartController {
   constructor(private readonly cart: CartService = cartService) {}
@@ -16,6 +16,24 @@ export class CartController {
 
   public getCart = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      // Administrators do not participate in consumer shopping or checkout
+      if (req.user?.role === 'ADMIN') {
+        return sendSuccess(
+          res,
+          {
+            id: 'admin_cart',
+            items: [],
+            itemCount: 0,
+            subtotal: 0,
+            shippingFee: 0,
+            tax: 0,
+            total: 0,
+          },
+          'Cart retrieved successfully',
+          200,
+        );
+      }
+
       const { userId, guestId } = this.extractCartIdentity(req);
       const summary = await this.cart.getCart(userId, guestId);
       sendSuccess(res, summary, 'Cart retrieved successfully', 200);
@@ -26,6 +44,12 @@ export class CartController {
 
   public addItem = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      if (req.user?.role === 'ADMIN') {
+        throw new ForbiddenError(
+          'Administrators are not permitted to add items to cart or purchase products. Please use a customer account.',
+        );
+      }
+
       const { userId, guestId } = this.extractCartIdentity(req);
       const summary = await this.cart.addItem(req.body, userId, guestId);
       sendSuccess(res, summary, 'Item added to cart successfully', 200);
@@ -69,6 +93,23 @@ export class CartController {
     try {
       if (!req.user?.id) {
         throw new UnauthorizedError('Authentication required to merge cart');
+      }
+
+      if (req.user?.role === 'ADMIN') {
+        return sendSuccess(
+          res,
+          {
+            id: 'admin_cart',
+            items: [],
+            itemCount: 0,
+            subtotal: 0,
+            shippingFee: 0,
+            tax: 0,
+            total: 0,
+          },
+          'Guest cart ignored for admin session',
+          200,
+        );
       }
 
       const guestId = req.body.guestId;

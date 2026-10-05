@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { orderService, OrderService } from './order.service';
 import { sendSuccess } from '../../app/utils/api-response';
-import { UnauthorizedError } from '../../app/errors/app-error';
+import { UnauthorizedError, ForbiddenError } from '../../app/errors/app-error';
 
 export class OrderController {
   constructor(private readonly orders: OrderService = orderService) {}
@@ -10,6 +10,12 @@ export class OrderController {
     try {
       if (!req.user) {
         throw new UnauthorizedError('Authentication required to checkout');
+      }
+
+      if (req.user.role === 'ADMIN') {
+        throw new ForbiddenError(
+          'Administrators are not permitted to purchase products. Orders can only be placed by Customer accounts.',
+        );
       }
 
       const result = await this.orders.checkout(req.user.id, req.user.email, req.body);
