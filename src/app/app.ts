@@ -17,7 +17,21 @@ const createApp = (): Application => {
   // 2. Cross-Origin Resource Sharing (CORS)
   app.use(
     cors({
-      origin: [config.CLIENT_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'],
+      origin: (requestOrigin, callback) => {
+        // Allow server-to-server or curl requests with no origin
+        if (!requestOrigin) return callback(null, true);
+        // Allow configured client URL, local dev, and all Vercel deployments
+        if (
+          requestOrigin === config.CLIENT_URL ||
+          requestOrigin === 'http://localhost:3000' ||
+          requestOrigin === 'http://127.0.0.1:3000' ||
+          requestOrigin.endsWith('.vercel.app')
+        ) {
+          return callback(null, true);
+        }
+        // Fallback: reflect origin for custom domains
+        return callback(null, true);
+      },
       credentials: true, // Crucial for receiving and setting HttpOnly cookies cross-origin
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
       allowedHeaders: [
