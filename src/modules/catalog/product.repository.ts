@@ -182,6 +182,21 @@ export class ProductRepository {
   public async getProductTitlesForTrie(): Promise<{ title: string; slug: string; brand: string }[]> {
     return ProductModel.find({ status: 'ACTIVE' }, { title: 1, slug: 1, brand: 1 }).lean();
   }
+
+  /**
+   * Fast query for catalog search suggestions fallback.
+   */
+  public async searchCatalog(regex: RegExp, limit = 6): Promise<{ title: string; slug: string; brand: string }[]> {
+    return ProductModel.find(
+      {
+        status: 'ACTIVE',
+        $or: [{ title: regex }, { brand: regex }, { sku: regex }],
+      },
+      { title: 1, slug: 1, brand: 1 },
+    )
+      .limit(limit)
+      .lean();
+  }
 }
 
 export const productRepository = new ProductRepository();

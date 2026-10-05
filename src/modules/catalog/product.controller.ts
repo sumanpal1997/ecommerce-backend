@@ -77,7 +77,7 @@ export class ProductController {
   public autocomplete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const query = (req.query.q as string) || '';
-      const suggestions = this.products.autocomplete(query);
+      const suggestions = await this.products.autocomplete(query);
       sendSuccess(res, { suggestions }, 'Autocomplete suggestions retrieved', 200);
     } catch (error) {
       next(error);

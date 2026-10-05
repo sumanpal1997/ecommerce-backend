@@ -140,20 +140,62 @@ export class ProductService {
   }
 
   /**
-   * Fast In-Memory Typeahead Autocomplete using Trie: O(K + M) time.
+   * Fast Typeahead Autocomplete using in-memory Trie with catalog fallback.
    */
-  public autocomplete(prefix: string): TrieItem[] {
-    return this.trie.search(prefix, 8);
+  public async autocomplete(prefix: string): Promise<TrieItem[]> {
+    if (!prefix || prefix.trim().length === 0) return [];
+
+    const trieResults = this.trie.search(prefix, 8);
+    if (trieResults.length >= 4) {
+      return trieResults;
+    }
+
+    try {
+      const escaped = prefix.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'i');
+      const dbMatches = await this.productRepo.searchCatalog(regex, 6);
+
+      const combined: TrieItem[] = [...trieResults];
+      const seenSlugs = new Set(combined.map((c) => c.slug).filter(Boolean));
+      const seenTerms = new Set(combined.map((c) => c.term.toLowerCase()));
+
+      for (const p of dbMatches) {
+        if (!seenSlugs.has(p.slug) && !seenTerms.has(p.title.toLowerCase())) {
+          seenSlugs.add(p.slug);
+          seenTerms.add(p.title.toLowerCase());
+          combined.push({ term: p.title, slug: p.slug, score: 7 });
+        }
+      }
+
+      return combined.slice(0, 8);
+    } catch {
+      return trieResults;
+    }
   }
 
   /**
    * Pre-warms the in-memory Trie from persistent storage on server boot.
    */
   public async warmTrie(): Promise<void> {
+    this.trie.clear();
     const products = await this.productRepo.getProductTitlesForTrie();
     for (const prod of products) {
+      // 1. Full title
       this.trie.insert({ term: prod.title, slug: prod.slug, score: 10 });
-      this.trie.insert({ term: prod.brand, score: 5 });
+      // 2. Brand
+      this.trie.insert({ term: prod.brand, score: 8 });
+
+      // 3. Sub-phrases from title so "MacBook", "AirPods", "Aeron", "SoundLink" match
+      const words = prod.title.split(/[\s-]+/).filter((w) => w.length >= 2);
+      for (let i = 1; i < words.length; i++) {
+        const subphrase = words.slice(i).join(' ');
+        this.trie.insert({ term: subphrase, slug: prod.slug, score: 9 });
+      }
+      for (const word of words) {
+        if (word.length >= 3 && word.toLowerCase() !== prod.brand.toLowerCase()) {
+          this.trie.insert({ term: word, slug: prod.slug, score: 6 });
+        }
+      }
     }
   }
 }

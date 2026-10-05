@@ -550,7 +550,7 @@ async function seedDatabase(): Promise<void> {
     // 5. Pre-warm In-Memory Trie Autocomplete
     console.log('Pre-warming in-memory Autocomplete Trie from newly seeded catalog...');
     await productService.warmTrie();
-    const suggestions = productService.autocomplete('son');
+    const suggestions = await productService.autocomplete('son');
     console.log(`Trie test search for "son": found ${suggestions.length} items (${suggestions.map((s) => s.term).join(', ')})`);
 
     console.log('\n🎉 Database seeding finished successfully!');
