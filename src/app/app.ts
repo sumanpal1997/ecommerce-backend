@@ -40,7 +40,17 @@ const createApp = (): Application => {
   // 4. Observability / Tracing
   app.use(requestIdMiddleware);
 
-  // 5. Mount API Routes with Versioning
+  // 5. Root Welcome & API Routes
+  app.get('/', (_req: Request, res: Response) => {
+    res.status(200).json({
+      name: 'ShopFlow Studio Enterprise API',
+      status: 'ONLINE',
+      version: '1.0.0',
+      health: '/api/v1/health',
+      catalog: '/api/v1/products',
+    });
+  });
+
   app.use('/api/v1', v1Routes);
 
   // 6. 404 Handler for Unmatched Routes
