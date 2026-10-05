@@ -48,6 +48,7 @@ export class DatabaseConnection {
         minPoolSize: 5,  // Maintain a minimum of 5 warm socket connections
         serverSelectionTimeoutMS: 5000, // Timeout fast if cluster is unreachable
         socketTimeoutMS: 45000,
+        dbName: 'ecommerce',
       });
     } catch (error) {
       console.error('❌ Failed to establish initial MongoDB connection:', error);

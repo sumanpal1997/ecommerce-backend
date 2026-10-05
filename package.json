@@ -8,7 +8,8 @@
     "build": "rimraf dist && tsc",
     "start": "node dist/app/server.js",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed": "tsx src/scripts/seed.ts"
   },
   "keywords": [],
   "author": "",
