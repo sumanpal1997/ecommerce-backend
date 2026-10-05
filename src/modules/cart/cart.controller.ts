@@ -18,7 +18,7 @@ export class CartController {
     try {
       // Administrators do not participate in consumer shopping or checkout
       if (req.user?.role === 'ADMIN') {
-        return sendSuccess(
+        sendSuccess(
           res,
           {
             id: 'admin_cart',
@@ -32,6 +32,7 @@ export class CartController {
           'Cart retrieved successfully',
           200,
         );
+        return;
       }
 
       const { userId, guestId } = this.extractCartIdentity(req);
@@ -96,7 +97,7 @@ export class CartController {
       }
 
       if (req.user?.role === 'ADMIN') {
-        return sendSuccess(
+        sendSuccess(
           res,
           {
             id: 'admin_cart',
@@ -110,6 +111,7 @@ export class CartController {
           'Guest cart ignored for admin session',
           200,
         );
+        return;
       }
 
       const guestId = req.body.guestId;
