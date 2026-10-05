@@ -13,7 +13,13 @@ router.post(
   orderController.checkout,
 );
 
+// Customer orders
 router.get('/me', authenticate, orderController.getMyOrders);
+
+// Admin queries (MUST be mounted before /:id)
+router.get('/admin/metrics', authenticate, authorize('ADMIN'), orderController.getMetrics);
+router.get('/', authenticate, authorize('ADMIN'), orderController.getAllOrders);
+
 router.get('/:id', authenticate, orderController.getOrderById);
 
 router.patch(

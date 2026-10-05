@@ -180,7 +180,14 @@ export class InventoryRepository {
       $expr: { $lte: ['$availableStock', '$lowStockThreshold'] },
     })
       .limit(limit)
-      .populate('productId', 'title slug');
+      .populate('productId', 'title slug images basePrice salePrice brand');
+  }
+
+  public async findAllInventory(limit = 100): Promise<IInventoryDoc[]> {
+    return InventoryModel.find()
+      .limit(limit)
+      .sort({ updatedAt: -1 })
+      .populate('productId', 'title slug images basePrice salePrice brand');
   }
 }
 

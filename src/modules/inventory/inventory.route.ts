@@ -12,6 +12,7 @@ const router = Router();
 
 // Public / Authenticated reads
 router.get('/alerts/low-stock', authenticate, authorize('ADMIN'), inventoryController.getLowStockAlerts);
+router.get('/', authenticate, authorize('ADMIN'), inventoryController.getAllInventory);
 router.get('/:sku', inventoryController.getStatus);
 
 // Admin stock adjustments (warehouse restock / physical counts)

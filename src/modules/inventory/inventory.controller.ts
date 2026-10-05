@@ -37,6 +37,19 @@ export class InventoryController {
     }
   };
 
+  public getAllInventory = async (
+    _req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const items = await this.inventory.getAllInventory();
+      sendSuccess(res, { items }, 'All inventory items retrieved successfully', 200);
+    } catch (error) {
+      next(error);
+    }
+  };
+
   public reserve = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.inventory.reserveStock(req.body);

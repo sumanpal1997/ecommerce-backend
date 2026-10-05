@@ -244,6 +244,48 @@ export class OrderService {
   ): Promise<{ orders: IOrderDoc[]; meta: PaginationMeta }> {
     return this.orderRepo.findByUserId(userId, page, limit);
   }
+
+  /**
+   * Admin order management: retrieve all customer orders across platform.
+   */
+  public async getAllOrders(
+    filter: { status?: OrderStatus } = {},
+    page = 1,
+    limit = 20,
+  ): Promise<{ orders: IOrderDoc[]; meta: PaginationMeta }> {
+    return this.orderRepo.findAll(filter, page, limit);
+  }
+
+  /**
+   * Executive Dashboard: aggregated metrics for store operators.
+   */
+  public async getDashboardMetrics(): Promise<{
+    revenue: { total: number; aov: number };
+    orders: { total: number; statusBreakdown: Record<string, number> };
+    recentOrders: IOrderDoc[];
+    inventory: { lowStockCount: number; lowStockItems: unknown[] };
+  }> {
+    const [orderStats, lowStockItems] = await Promise.all([
+      this.orderRepo.getOrderStats(),
+      this.inventory.getLowStockAlerts(),
+    ]);
+
+    return {
+      revenue: {
+        total: orderStats.totalRevenue,
+        aov: orderStats.averageOrderValue,
+      },
+      orders: {
+        total: orderStats.totalOrders,
+        statusBreakdown: orderStats.statusCounts,
+      },
+      recentOrders: orderStats.recentOrders,
+      inventory: {
+        lowStockCount: lowStockItems.length,
+        lowStockItems,
+      },
+    };
+  }
 }
 
 export const orderService = new OrderService();

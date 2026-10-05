@@ -62,6 +62,28 @@ export class OrderController {
       next(error);
     }
   };
+
+  public getAllOrders = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const page = parseInt((req.query.page as string) || '1', 10);
+      const limit = parseInt((req.query.limit as string) || '20', 10);
+      const status = req.query.status as any;
+
+      const result = await this.orders.getAllOrders({ status }, page, limit);
+      sendSuccess(res, result.orders, 'All orders retrieved successfully', 200, result.meta);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  public getMetrics = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const metrics = await this.orders.getDashboardMetrics();
+      sendSuccess(res, metrics, 'Admin dashboard metrics retrieved successfully', 200);
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export const orderController = new OrderController();

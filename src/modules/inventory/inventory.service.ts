@@ -225,6 +225,13 @@ export class InventoryService {
   public async getLowStockAlerts(): Promise<IInventoryDoc[]> {
     return this.inventoryRepo.findLowStockItems();
   }
+
+  /**
+   * Admin inventory console: retrieve all SKU records across warehouse.
+   */
+  public async getAllInventory(): Promise<IInventoryDoc[]> {
+    return this.inventoryRepo.findAllInventory();
+  }
 }
 
 export const inventoryService = new InventoryService();
