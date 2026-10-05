@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # MongoDB Production Database
+  mongodb:
+    image: mongo:7.0
+    container_name: shopflow-mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-shopflow_secure_password_2026}
+      MONGO_INITDB_DATABASE: shopflow_prod
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - shopflow-network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Distributed Cache & Mutex Lock
+  redis:
+    image: redis:7-alpine
+    container_name: shopflow-redis
+    restart: always
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-shopflow_redis_secure_pass}
+    volumes:
+      - redis_data:/data
+    networks:
+      - shopflow-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Node.js Express API Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: shopflow-backend
+    restart: always
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      CLIENT_URL: ${CLIENT_URL:-https://shopflow.store}
+      DATABASE_URL: mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-shopflow_secure_password_2026}@mongodb:27017/shopflow_prod?authSource=admin
+      REDIS_URL: redis://:${REDIS_PASSWORD:-shopflow_redis_secure_pass}@redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-your_super_secret_jwt_access_key_min_32_characters}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your_super_secret_jwt_refresh_key_min_32_characters}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
+      EMAIL_FROM: ${EMAIL_FROM:-ShopFlow Studio <concierge@shopflow.dev>}
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - shopflow-network
+    ports:
+      - "5000:5000"
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  shopflow-network:
+    driver: bridge

@@ -1,0 +1,79 @@
+name: Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  test-and-build:
+    name: Lint, Typecheck & Vitest Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: TypeScript Static Typecheck
+        run: npx tsc --noEmit
+
+      - name: Run Test Suite (Vitest)
+        run: npm test
+
+      - name: Build Production JavaScript
+        run: npm run build
+
+  deploy:
+    name: Continuous Deployment to Live Server
+    needs: test-and-build
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Deployment Path A: Cloud Platform Webhook (Render, Railway, Fly, etc.)
+      - name: Trigger Cloud Platform Deploy Hook (if configured)
+        if: env.DEPLOY_HOOK_URL != ''
+        env:
+          DEPLOY_HOOK_URL: ${{ secrets.DEPLOY_HOOK_URL }}
+        run: |
+          echo "🚀 Triggering cloud platform deployment hook..."
+          curl -s -X POST "$DEPLOY_HOOK_URL"
+          echo "✅ Cloud deploy signal sent successfully."
+
+      # Deployment Path B: Direct SSH Deploy to Linux VPS (if SSH secrets are configured)
+      - name: Deploy to Live Linux VPS via SSH (if configured)
+        if: env.SSH_HOST != ''
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_KEY: ${{ secrets.SSH_KEY }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '22' }}
+        run: |
+          echo "🚀 Initiating zero-downtime deployment to live VPS ($SSH_HOST)..."
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" -i ~/.ssh/deploy_key "$SSH_USER@$SSH_HOST" << 'EOF'
+            set -e
+            cd /opt/shopflow/ecommerce-backend || cd ~/shopflow/ecommerce-backend
+            echo "📥 Pulling latest commits from git remote..."
+            git pull origin master || git pull origin main
+            echo "📦 Installing production dependencies..."
+            npm ci --only=production
+            echo "🔨 Building production bundle..."
+            npm run build
+            echo "🔄 Gracefully reloading process manager..."
+            pm2 reload ecosystem.config.js || pm2 reload server || docker compose restart backend || sudo systemctl restart shopflow-backend
+            echo "✅ Live deployment completed successfully!"
+          EOF
