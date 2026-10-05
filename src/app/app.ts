@@ -17,10 +17,18 @@ const createApp = (): Application => {
   // 2. Cross-Origin Resource Sharing (CORS)
   app.use(
     cors({
-      origin: [config.CLIENT_URL, 'http://localhost:3000'],
+      origin: [config.CLIENT_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'],
       credentials: true, // Crucial for receiving and setting HttpOnly cookies cross-origin
       methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Request-Id',
+        'X-Guest-Id',
+        'x-guest-id',
+        'stripe-signature',
+        'x-signature',
+      ],
     }),
   );
 

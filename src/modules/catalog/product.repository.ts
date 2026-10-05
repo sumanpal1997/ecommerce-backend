@@ -73,8 +73,8 @@ export class ProductRepository {
       }
     }
 
-    if (query.brand) {
-      filter.brand = query.brand;
+    if (query.brand && query.brand.trim().length > 0) {
+      filter.brand = { $regex: new RegExp(`^${query.brand.trim()}$`, 'i') };
     }
 
     if (query.minPrice !== undefined || query.maxPrice !== undefined) {

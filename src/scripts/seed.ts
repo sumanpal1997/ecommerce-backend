@@ -481,7 +481,7 @@ async function seedDatabase(): Promise<void> {
         salePrice: 1495.0,
         images: [
           {
-            url: 'https://images.unsplash.com/photo-1580481077195-c3c2f1f00889?w=800&auto=format&fit=crop&q=80',
+            url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80',
             alt: 'Herman Miller Aeron ergonomic desk chair in graphite',
             isPrimary: true,
           },
