@@ -5,6 +5,7 @@ import { RegisterInput, LoginInput } from './auth.schema';
 import { ConflictError, UnauthorizedError } from '../../app/errors/app-error';
 import { AuthTokens } from './auth.types';
 import { IUserDoc } from '../users/user.types';
+import { emailService } from '../notifications/email.service';
 
 export interface AuthResult {
   user: IUserDoc;
@@ -45,6 +46,17 @@ export class AuthService {
       user.role,
       user.refreshTokenVersion,
     );
+
+    // Non-blocking welcome email dispatch to deliver responsive UX
+    emailService
+      .sendWelcomeEmail({
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+      })
+      .catch((err) => {
+        console.error(`[AUTH] Failed to dispatch welcome email to ${user.email}:`, err);
+      });
 
     return { user, tokens };
   }

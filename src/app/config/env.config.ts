@@ -27,6 +27,14 @@ const envSchema = z.object({
     .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters long for cryptographic safety'),
   JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z
+    .string()
+    .optional()
+    .transform((val) => (val ? parseInt(val, 10) : undefined)),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().default('ShopFlow Studio <concierge@shopflow.dev>'),
 });
 
 const parseEnv = () => {

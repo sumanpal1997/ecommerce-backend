@@ -1,5 +1,7 @@
 import { Types } from 'mongoose';
 import { orderRepository, OrderRepository } from './order.repository';
+import { userRepository } from '../users/user.repository';
+import { emailService } from '../notifications/email.service';
 import { cartService, CartService } from '../cart/cart.service';
 import { inventoryService, InventoryService } from '../inventory/inventory.service';
 import { paymentService, PaymentService } from '../payments/payment.service';
@@ -154,7 +156,14 @@ export class OrderService {
 
     // 2. Update status to PAID
     const updated = await this.orderRepo.updateStatus(order._id.toString(), 'PAID');
-    return updated || order;
+    const finalOrder = updated || order;
+
+    // 3. Dispatch itemized purchase receipt email asynchronously
+    this.dispatchOrderConfirmationEmail(order).catch((err) => {
+      console.error(`[ORDER] Failed to dispatch order receipt email for ${order.orderNumber}:`, err);
+    });
+
+    return finalOrder;
   }
 
   /**
@@ -285,6 +294,71 @@ export class OrderService {
         lowStockItems,
       },
     };
+  }
+
+  /**
+   * Helper method to dispatch itemized Order Confirmation & Purchase Receipt Email.
+   */
+  private async dispatchOrderConfirmationEmail(order: IOrderDoc): Promise<void> {
+    try {
+      let email = '';
+      let customerName = order.shippingAddress?.fullName || 'Valued Customer';
+
+      if (order.userId && typeof order.userId === 'object' && 'email' in (order.userId as any)) {
+        const userObj = order.userId as any;
+        email = userObj.email || '';
+        if (userObj.firstName) {
+          customerName = `${userObj.firstName} ${userObj.lastName || ''}`.trim();
+        }
+      } else if (order.userId) {
+        const user = await userRepository.findById(order.userId.toString());
+        if (user) {
+          email = user.email;
+          if (user.firstName) {
+            customerName = `${user.firstName} ${user.lastName || ''}`.trim();
+          }
+        }
+      }
+
+      if (!email) {
+        console.warn(`[ORDER CONFIRMATION] No destination email found for order ${order.orderNumber}`);
+        return;
+      }
+
+      await emailService.sendOrderConfirmationEmail({
+        email,
+        customerName,
+        order: {
+          _id: order._id.toString(),
+          orderNumber: order.orderNumber,
+          createdAt: order.createdAt,
+          items: order.items.map((i) => ({
+            title: i.title,
+            sku: i.sku,
+            quantity: i.quantity,
+            unitPrice: i.unitPrice,
+            subtotal: i.subtotal,
+            image: i.image,
+          })),
+          pricing: {
+            itemsSubtotal: order.pricing.subtotal,
+            shippingFee: order.pricing.shippingFee,
+            taxAmount: order.pricing.tax,
+            totalAmount: order.pricing.totalAmount,
+          },
+          shippingAddress: {
+            fullName: order.shippingAddress.fullName,
+            street: order.shippingAddress.street,
+            city: order.shippingAddress.city,
+            state: order.shippingAddress.state,
+            postalCode: order.shippingAddress.postalCode,
+            country: order.shippingAddress.country,
+          },
+        },
+      });
+    } catch (err) {
+      console.error(`[ORDER CONFIRMATION] Failed to dispatch receipt email for ${order.orderNumber}:`, err);
+    }
   }
 }
 
