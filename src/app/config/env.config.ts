@@ -17,8 +17,14 @@ const envSchema = z.object({
     .refine((val) => !isNaN(val) && val > 0 && val <= 65535, {
       message: 'PORT must be a valid port number (1-65535)',
     }),
-  CLIENT_URL: z.string().url().default('http://localhost:3000'),
-  MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
+  CLIENT_URL: z.string().default('http://localhost:3000'),
+  MONGO_URI: z
+    .string()
+    .optional()
+    .transform((val) => val || process.env.DATABASE_URL || '')
+    .refine((val) => val.length > 0, {
+      message: 'MONGO_URI (or DATABASE_URL) is required to connect to MongoDB',
+    }),
   JWT_ACCESS_SECRET: z
     .string()
     .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters long for cryptographic safety'),
