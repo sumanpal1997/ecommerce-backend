@@ -31,6 +31,7 @@ export const createProductSchema = z.object({
 export const updateProductSchema = createProductSchema.partial();
 
 export const productQuerySchema = z.object({
+  category: z.string().optional(),
   categoryId: z.string().optional(),
   brand: z.string().optional(),
   minPrice: z

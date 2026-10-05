@@ -31,6 +31,7 @@ export interface IProductDoc extends IProduct, Document {
 }
 
 export interface ProductFilterQuery {
+  category?: string;
   categoryId?: string;
   brand?: string;
   minPrice?: number;

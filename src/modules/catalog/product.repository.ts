@@ -1,5 +1,6 @@
 import { Types } from 'mongoose';
 import { ProductModel } from './product.model';
+import { CategoryModel } from './category.model';
 import {
   CursorPaginatedProducts,
   IProduct,
@@ -41,14 +42,35 @@ export class ProductRepository {
     return ProductModel.findByIdAndUpdate(id, { status: 'ARCHIVED' }, { new: true });
   }
 
-  private buildMongooseFilter(query: ProductFilterQuery): Record<string, unknown> {
+  private async buildMongooseFilter(query: ProductFilterQuery): Promise<Record<string, unknown>> {
     const filter: Record<string, unknown> = {};
 
     // By default, only return ACTIVE products unless explicitly specified
     filter.status = query.status || 'ACTIVE';
 
-    if (query.categoryId && Types.ObjectId.isValid(query.categoryId)) {
-      filter.categoryId = new Types.ObjectId(query.categoryId);
+    const categoryTarget = query.category || query.categoryId;
+    if (categoryTarget && categoryTarget !== 'all') {
+      let matchedCategory;
+      if (Types.ObjectId.isValid(categoryTarget)) {
+        matchedCategory = await CategoryModel.findById(categoryTarget);
+      } else {
+        matchedCategory = await CategoryModel.findOne({ slug: categoryTarget.toLowerCase() });
+      }
+
+      if (matchedCategory) {
+        // Subtree match using materialized path: matches category itself and all children
+        const escapedPath = matchedCategory.path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const descendantCategories = await CategoryModel.find({
+          path: { $regex: new RegExp(`^${escapedPath}(/|$)`) },
+          isActive: true,
+        }).select('_id');
+
+        const categoryIds = descendantCategories.map((c) => c._id);
+        filter.categoryId = { $in: categoryIds };
+      } else {
+        // Category not found
+        filter.categoryId = new Types.ObjectId();
+      }
     }
 
     if (query.brand) {
@@ -97,7 +119,7 @@ export class ProductRepository {
     const limit = Math.min(100, Math.max(1, query.limit || 20));
     const skip = (page - 1) * limit;
 
-    const filter = this.buildMongooseFilter(query);
+    const filter = await this.buildMongooseFilter(query);
     const sort = this.buildSort(query.sortBy);
 
     const [items, totalItems] = await Promise.all([
@@ -126,7 +148,7 @@ export class ProductRepository {
    */
   public async findWithCursorPagination(query: ProductFilterQuery): Promise<CursorPaginatedProducts> {
     const limit = Math.min(100, Math.max(1, query.limit || 20));
-    const filter = this.buildMongooseFilter(query);
+    const filter = await this.buildMongooseFilter(query);
 
     // If cursor is provided, fetch items created before this cursor (descending by _id)
     if (query.cursor && Types.ObjectId.isValid(query.cursor)) {
